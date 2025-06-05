@@ -48,7 +48,7 @@ class DHParticipant:
         return shared_secret
 
 
-def simple_example():
+def main():
     """
     Un exemple simple d'échange Diffie-Hellman
     """
@@ -82,4 +82,4 @@ def simple_example():
 
 
 if __name__ == "__main__":
-    simple_example()
+    main()

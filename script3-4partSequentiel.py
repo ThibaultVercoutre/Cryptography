@@ -41,6 +41,7 @@ class DHParticipant:
     
     def apply_private_key(self, input_value: int) -> int:
         """Applique la clé privée à une valeur"""
+        """ calcul = input_value^private_key mod p"""
         return pow(input_value, self.private_key, self.dh.p)
 
 
@@ -79,7 +80,7 @@ class SequentialMultipartyDH:
         return current_value
 
 
-def multiparty_example():
+def main():
     """
     Exemple d'échange Diffie-Hellman multipartite
     """
@@ -102,4 +103,4 @@ def multiparty_example():
 
 
 if __name__ == "__main__":
-    multiparty_example()
+    main()
