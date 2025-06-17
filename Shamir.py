@@ -1,28 +1,67 @@
 import random
 from typing import List, Tuple
+import matplotlib.pyplot as plt
+import numpy as np
 
 # Utiliser un grand nombre premier comme champ fini
 PRIME = 2089  # doit être > secret et > n
 
-def generate_polynomial(secret: int, degree: int) -> List[int]:
-    """Génère un polynôme aléatoire f(x) = a0 + a1*x + ... + at-1*x^t-1"""
+def generate_polynomial(secret: int, degree: int) -> List[int]:            # Génère un polynôme aléatoire f(x) = a0 + a1*x + ... + at-1*x^t-1
     return [secret] + [random.randint(0, PRIME - 1) for _ in range(degree)]
 
-def evaluate_polynomial(poly: List[int], x: int) -> int:
-    """Évalue le polynôme au point x (mod PRIME)"""
-    result = 0
+def print_polynomial(poly: List[int]):        # Affiche le polynôme sous forme mathématique : f(x) = a0 + a1·x + a2·x² + ...
+    terms = []
     for power, coeff in enumerate(poly):
-        result = (result + coeff * pow(x, power, PRIME)) % PRIME
-    return result
+        if coeff == 0:
+            continue
+        if power == 0:
+            terms.append(f"{coeff}")
+        elif power == 1:
+            terms.append(f"{coeff}x")
+        else:
+            terms.append(f"{coeff}x^{power}")
+    polynomial_str = " + ".join(terms)
+    print(f"f(x) = {polynomial_str}\n")
 
-def generate_shares(secret: int, n: int, t: int) -> List[Tuple[int, int]]:
-    """Génère n parts avec un seuil de t"""
+
+def evaluate_polynomial(poly: List[int], x: int, prime: int = PRIME) -> int:    # Évalue le polynôme en un point x modulo prime.
+    return sum(coef * pow(x, i, prime) for i, coef in enumerate(poly)) % prime
+
+def plot_polynomial(poly: List[int], prime: int = PRIME, x_range: Tuple[int, int] = (0, 20)) -> None:         # Trace la courbe du polynôme sur une plage de valeurs de x.
+    x_vals = list(range(*x_range))
+    y_vals = [evaluate_polynomial(poly, x, prime) for x in x_vals]
+
+    plt.figure(figsize=(8, 5))
+    plt.plot(x_vals, y_vals, marker='o')
+    plt.title("Courbe du polynôme (modulo {})".format(prime))
+    plt.xlabel("x")
+    plt.ylabel("f(x)")
+    plt.grid(True)
+    plt.show()
+
+def evaluate_polynomial_real(poly: List[int], x: float) -> float:  # Évalue le polynôme en un point x sans modulo (dans ℝ).
+    return sum(coef * (x ** i) for i, coef in enumerate(poly))
+
+def plot_polynomial_real(poly: List[int], x_range: Tuple[float, float] = (-50, 50), num_points: int = 200) -> None:   # Évalue le polynôme en un point x sans modulo (dans ℝ).
+    x_vals = np.linspace(*x_range, num_points)
+    y_vals = [evaluate_polynomial_real(poly, x) for x in x_vals]
+
+    plt.figure(figsize=(8, 5))
+    plt.plot(x_vals, y_vals)
+    plt.title("Courbe réelle du polynôme")
+    plt.xlabel("x")
+    plt.ylabel("f(x)")
+    plt.grid(True)
+    plt.show()
+
+
+def generate_shares(secret: int, n: int, t: int) -> Tuple[List[Tuple[int, int]], List[int]]:    # Génère n parts avec un seuil de t, retourne aussi le polynôme
     poly = generate_polynomial(secret, t - 1)
     shares = [(i, evaluate_polynomial(poly, i)) for i in range(1, n + 1)]
-    return shares
+    return shares, poly
 
-def lagrange_interpolation(x: int, x_s: List[int], y_s: List[int]) -> int:
-    """Interpolation de Lagrange pour retrouver le secret f(0)"""
+
+def lagrange_interpolation(x: int, x_s: List[int], y_s: List[int]) -> int:     # Interpolation de Lagrange pour retrouver le secret f(0)
     total = 0
     k = len(x_s)
     for i in range(k):
@@ -37,32 +76,39 @@ def lagrange_interpolation(x: int, x_s: List[int], y_s: List[int]) -> int:
         total %= PRIME
     return total
 
-def reconstruct_secret(shares: List[Tuple[int, int]]) -> int:
-    """Reconstitue le secret à partir d'au moins t parts"""
+def reconstruct_secret(shares: List[Tuple[int, int]]) -> int:   # Reconstitue le secret à partir d'au moins t parts
     x_s, y_s = zip(*shares)
     return lagrange_interpolation(0, list(x_s), list(y_s))
 
 # Exemple d'utilisation
 def main():
     secret = random.randint(1, PRIME - 1)
-    n = 5    # Nombre total de participants
-    t = 3    # Seuil minimal requis pour reconstituer le secret
+    n = 4
+    t = 3
     
-    print(f"🔐 Secret initial à partager : {secret}")
-    shares = generate_shares(secret, n, t)
+    print(f"Secret initial à partager : {secret}")
+    shares, poly = generate_shares(secret, n, t)
     
-    print("\n🧾 Parts générées (à distribuer aux participants) :")
+
+    print("\nPolynôme généré :")
+    print_polynomial(poly)
+    
+    print("\nParts générées (à distribuer aux participants) :")
     for i, (x, y) in enumerate(shares, 1):
         print(f"Participant {i} reçoit : (x={x}, y={y})")
     
-    # Sélection aléatoire de t parts pour la reconstruction
+    # Affichage de la courbe
+    plot_polynomial(poly)  
+
+    plot_polynomial_real(poly) 
+    
     selected_shares = random.sample(shares, t)
-    print("\n🔄 Reconstruction avec les parts suivantes :")
+    print("\nReconstruction avec les parts suivantes :")
     for x, y in selected_shares:
         print(f"(x={x}, y={y})")
     
     recovered_secret = reconstruct_secret(selected_shares)
-    print(f"\n✅ Secret reconstruit : {recovered_secret}")
+    print(f"\nSecret reconstruit : {recovered_secret}")
     print("✅ Succès" if recovered_secret == secret else "❌ Échec")
 
 if __name__ == "__main__":
