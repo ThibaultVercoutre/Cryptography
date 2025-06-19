@@ -6,6 +6,21 @@ import numpy as np
 # Utiliser un grand nombre premier comme champ fini
 PRIME = 2089  # doit être > secret et > n
 
+def isprime(n: int) -> bool:  # Renvoie True si n est un nombre premier, False sinon.    
+    if n <= 1:
+        return False
+    if n <= 3:
+        return True
+    if n % 2 == 0 or n % 3 == 0:
+        return False
+
+    i = 5
+    while i * i <= n:
+        if n % i == 0 or n % (i + 2) == 0:
+            return False
+        i += 6
+    return True
+
 def generate_polynomial(secret: int, degree: int) -> List[int]:            # Génère un polynôme aléatoire f(x) = a0 + a1*x + ... + at-1*x^t-1
     return [secret] + [random.randint(0, PRIME - 1) for _ in range(degree)]
 
@@ -27,7 +42,7 @@ def print_polynomial(poly: List[int]):        # Affiche le polynôme sous forme 
 def evaluate_polynomial(poly: List[int], x: int, prime: int = PRIME) -> int:    # Évalue le polynôme en un point x modulo prime.
     return sum(coef * pow(x, i, prime) for i, coef in enumerate(poly)) % prime
 
-def plot_polynomial(poly: List[int], prime: int = PRIME, x_range: Tuple[int, int] = (0, 20)) -> None:         # Trace la courbe du polynôme sur une plage de valeurs de x.
+def plot_polynomial(poly: List[int], prime: int = PRIME, x_range: Tuple[int, int] = (-50, 50)) -> None:         # Trace la courbe du polynôme sur une plage de valeurs de x.
     x_vals = list(range(*x_range))
     y_vals = [evaluate_polynomial(poly, x, prime) for x in x_vals]
 
@@ -42,7 +57,7 @@ def plot_polynomial(poly: List[int], prime: int = PRIME, x_range: Tuple[int, int
 def evaluate_polynomial_real(poly: List[int], x: float) -> float:  # Évalue le polynôme en un point x sans modulo (dans ℝ).
     return sum(coef * (x ** i) for i, coef in enumerate(poly))
 
-def plot_polynomial_real(poly: List[int], x_range: Tuple[float, float] = (-50, 50), num_points: int = 200) -> None:   # Évalue le polynôme en un point x sans modulo (dans ℝ).
+def plot_polynomial_real(poly: List[int], x_range: Tuple[float, float] = (-50, 50), num_points: int = 200) -> None:   # Trace la courbe du polynôme sur une plage de valeurs de x sans modulo (dans ℝ).
     x_vals = np.linspace(*x_range, num_points)
     y_vals = [evaluate_polynomial_real(poly, x) for x in x_vals]
 
@@ -82,9 +97,16 @@ def reconstruct_secret(shares: List[Tuple[int, int]]) -> int:   # Reconstitue le
 
 # Exemple d'utilisation
 def main():
+    if not isprime(PRIME):
+        print(f"Le nombre {PRIME} n'est pas premier. Veuillez choisir un nombre premier.")
+        return 0
+    
     secret = random.randint(1, PRIME - 1)
-    n = 4
-    t = 3
+    n = 4    # Nombre total de participants
+    t = 3    # Seuil de reconstruction (nombre minimum de parts nécessaires)
+    if t > n:
+        print("Le seuil t doit être inférieur ou égal au nombre de participants n.")
+        return 0
     
     print(f"Secret initial à partager : {secret}")
     shares, poly = generate_shares(secret, n, t)
